@@ -87,7 +87,7 @@ impl AppState {
         Self {
             screen: Screen::Connect,
             conn_status: ConnStatus::Disconnected,
-            server_input: "127.0.0.1:7878".into(),
+            server_input: "81.31.246.215:7878".into(),
             username_input: String::new(),
             connect_field: ConnectField::Server,
             my_user_id: None,

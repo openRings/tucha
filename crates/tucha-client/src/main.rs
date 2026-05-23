@@ -32,7 +32,7 @@ async fn main() -> Result<()> {
     let file = std::fs::File::create("/tmp/tucha.log")?;
     tracing_subscriber::fmt()
         .with_writer(file)
-        .with_env_filter("tucha_client=debug,tucha_server=debug")
+        .with_env_filter("debug")
         .init();
 
     enable_raw_mode()?;
