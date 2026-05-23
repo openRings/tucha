@@ -1,0 +1,28 @@
+[package]
+name    = "tucha-client"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "tucha"
+path = "src/main.rs"
+
+[dependencies]
+tucha-proto = { path = "../tucha-proto" }
+tokio       = { workspace = true }
+serde       = { workspace = true }
+bincode     = { workspace = true }
+anyhow      = { workspace = true }
+thiserror   = { workspace = true }
+tracing     = { workspace = true }
+tracing-subscriber = { workspace = true }
+bytes       = { workspace = true }
+
+# TUI
+ratatui    = "0.29"
+crossterm  = { version = "0.28", features = ["event-stream"] }
+
+# Audio
+cpal       = "0.15"
+audiopus   = "0.2"
+ringbuf    = "0.4"
