@@ -24,7 +24,7 @@ use audio::{
     playback::PlaybackStream,
     AudioMetrics, MetricsRef,
 };
-use network::{AudioStream, SignalingClient};
+use network::{AudioStream, PeerLevels, SignalingClient};
 use tucha_proto::{ClientMsg, RoomId, ServerMsg};
 
 #[tokio::main]
@@ -100,6 +100,9 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<std::io::Stdout>>) -> Resu
     let mut _capture_stream: Option<CaptureStream>   = None;
     let mut _playback_stream: Option<PlaybackStream> = None;
 
+    // Уровни голоса собеседников — заполняется в recv-задаче AudioStream
+    let peer_levels_ref: Arc<Mutex<Option<PeerLevels>>> = Arc::new(Mutex::new(None));
+
     let tick_rate = Duration::from_millis(50);
 
     loop {
@@ -121,6 +124,21 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<std::io::Stdout>>) -> Resu
             }
         }
 
+        // Обновляем VU-метры собеседников из peer_levels (UDP recv task)
+        {
+            let pl_guard = peer_levels_ref.lock().unwrap();
+            if let Some(levels) = pl_guard.as_ref() {
+                let now = std::time::Instant::now();
+                let map = levels.lock().unwrap();
+                for (&uid, &(level, last)) in map.iter() {
+                    let stale = now.duration_since(last) > Duration::from_millis(400);
+                    let display_level = if stale { 0.0 } else { level };
+                    state.volume_levels.insert(uid, display_level);
+                    state.speaking.insert(uid, !stale && level > 0.05);
+                }
+            }
+        }
+
         // Обработка клавиатуры
         if event::poll(tick_rate)? {
             if let Event::Key(key) = event::read()? {
@@ -139,6 +157,7 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<std::io::Stdout>>) -> Resu
                             &deafened,
                             &audio_devs,
                             room_rx.clone(),
+                            &peer_levels_ref,
                         ).await?;
                     }
                     Screen::Main => {
@@ -190,6 +209,7 @@ async fn handle_connect_keys(
     deafened: &Arc<Mutex<bool>>,
     devs:     &AudioDevices,
     room_rx:  watch::Receiver<Option<RoomId>>,
+    peer_levels_ref: &Arc<Mutex<Option<PeerLevels>>>,
 ) -> Result<()> {
     use KeyCode::*;
     match key.code {
@@ -270,6 +290,9 @@ async fn handle_connect_keys(
 
             // 4. Сохраняем Sender encoded audio → UDP send task
             *audio_enc_tx.lock().unwrap() = Some(audio_stream.encoded_tx.clone());
+
+            // Пробрасываем peer_levels из AudioStream в main loop
+            *peer_levels_ref.lock().unwrap() = Some(audio_stream.peer_levels.clone());
 
             // 5. Запускаем аудио устройства (capture → audio_stream.encoded_tx)
             start_audio(

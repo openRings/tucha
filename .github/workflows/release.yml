@@ -80,9 +80,24 @@ jobs:
 
       # ─── Сборка release ───────────────────────────────────────────────────
       - name: Build
+        if: matrix.target != 'x86_64-apple-darwin'
         run: cargo build -p tucha-client --release --target ${{ matrix.target }}
         env:
-          PKG_CONFIG_PATH: ${{ runner.os == 'macOS' && '/opt/homebrew/lib/pkgconfig:/usr/local/lib/pkgconfig' || '' }}
+          PKG_CONFIG_PATH: ${{ runner.os == 'macOS' && '/opt/homebrew/lib/pkgconfig' || '' }}
+
+      # audiopus_sys compiles Opus C sources via the cc crate.
+      # Without explicit flags, cc uses the host arch (arm64).
+      # CC_x86_64_apple_darwin / CFLAGS_x86_64_apple_darwin are standard
+      # cc-crate env vars keyed by target triple (hyphens -> underscores).
+      - name: Build (macOS Intel cross-compile)
+        if: matrix.target == 'x86_64-apple-darwin'
+        run: cargo build -p tucha-client --release --target x86_64-apple-darwin
+        env:
+          CC_x86_64_apple_darwin: clang
+          CFLAGS_x86_64_apple_darwin: "-arch x86_64"
+          CARGO_TARGET_X86_64_APPLE_DARWIN_LINKER: clang
+          PKG_CONFIG_ALLOW_CROSS: "1"
+          PKG_CONFIG_PATH: /opt/homebrew/lib/pkgconfig
 
       # ─── Упаковка ─────────────────────────────────────────────────────────
       - name: Pack (Unix)
