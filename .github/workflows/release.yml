@@ -22,9 +22,9 @@ jobs:
             artifact: tucha
             archive: tucha-macos-arm64
 
-          # macOS Intel
+          # macOS Intel (кросс-компиляция с ARM раннера)
           - target: x86_64-apple-darwin
-            os: macos-13
+            os: macos-latest
             artifact: tucha
             archive: tucha-macos-x86_64
 
