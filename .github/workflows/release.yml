@@ -53,10 +53,10 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y pkg-config libopus-dev libasound2-dev
 
-      # ─── macOS: opus via Homebrew ────────────────────────────────────────
+      # ─── macOS: opus + autotools (нужны для кросс-компиляции audiopus_sys) ──
       - name: Install macOS deps
         if: runner.os == 'macOS'
-        run: brew install opus pkg-config
+        run: brew install opus pkg-config autoconf automake libtool
 
       # ─── Windows: opus через vcpkg ───────────────────────────────────────
       - name: Install Windows deps
